@@ -55,8 +55,10 @@ namespace LWMsFuelFilterFix.NativeProbe
                 Require(selected.BestThingRequest.group == ThingRequestGroup.Everything,
                     "hidden non-haulable entry did not reproduce Everything request");
 
-                Thing fuel = ThingMaker.MakeThing(wood);
-                Thing alternative = ThingMaker.MakeThing(steel);
+                // Probe runs after Def load, before world/map ID generators exist.
+                // Construct only the Thing fields used by the real filter logic.
+                Thing fuel = new Thing { def = wood };
+                Thing alternative = new Thing { def = steel };
                 Func<Thing, bool> test = candidate =>
                     (bool)allows.Invoke(null, new object[] { candidate, supported, selected });
                 Require(test(fuel), "selected supported wood rejected");
