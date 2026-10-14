@@ -10,7 +10,7 @@ RimWorld 1.6 / LWM's Fuel Filter (Continued) 向けの独立した修正パッ�
 - LWM's Fuel Filter (Continued) (`zal.lwmfuelfilter`, Workshop 3288440994)
 - このModをLWM's Fuel Filterの後に配置してください。
 
-通常補給と一括補給の燃料探索を対象にします。到達可能性・予約・持出禁止・必要個数の判定はゲーム本体の探索処理を利用します。Medieval Overhaulは必須ではありません。
+通常補給と一括補給の燃料探索を対象にします。到達可能性・予約・持出禁止・必要個数の判定はゲーム本体の探索処理を利用します。
 
 ## 原因と修正範囲
 
@@ -31,7 +31,7 @@ RimWorld 1.6 / LWM's Fuel Filter (Continued) 向けの独立した修正パッ�
 
 An independent patch for **RimWorld 1.6** and **LWM's Fuel Filter (Continued)**. Hidden unsupported entries in a saved fuel filter can make refueling fail despite available fuel. This mod searches haulable items and requires both the building's original fuel filter and the user's individual filter to accept each candidate.
 
-Requires Harmony and LWM's Fuel Filter (Continued); load after both. Medieval Overhaul is optional. Normal and atomic refueling are covered. Saved filters are not rewritten, and user-disabled fuels remain disabled. The category-selection UI itself is not changed.
+Requires Harmony and LWM's Fuel Filter (Continued); load after both. Normal and atomic refueling are covered. Saved filters are not rewritten, and user-disabled fuels remain disabled. The category-selection UI itself is not changed.
 
 The category checkbox can select hidden descendants; unrestricted filter pasting is another possible entry point. A non-haulable building in the filter can produce an `Everything` request, which the game's reachable search rejects. The first action that polluted the investigated save is unknown.
 
