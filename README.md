@@ -24,8 +24,10 @@ RimWorld 1.6 / LWM's Fuel Filter (Continued) 向けの独立した修正パッ�
 
 - 依存先: RimWorld 1.6.4871、LWM's Fuel Filter (Continued) 1.1.2。
 - `Tests`は実ゲームDLLの`ThingFilter`のDef許可リストと探索要求生成を使い、不正な探索要求の再現・Def単位の許可/拒否・フィルタを変更しないことを検査します。Unityを起動しないためThingDefは必要なフィールドだけを設定し、`Allows(Thing)`はDef判定に限定したテスト用派生型に置き換えています。HP・品質・特殊条件は単体テスト対象外です。
-- マップ上の経路探索、実際の補給ジョブ、一括補給の個数判定、他のHarmonyパッチとの共存はゲーム内検証が必要です。
-- Steam Workshop未公開。ゲーム内検証が終わるまでは公開前候補です。
+- 隔離されたRimWorldLinux 1.6実機で、焚き火・木材・ポーンを用いた補給テスト9項目がVanilla構成でPASS。非表示の非運搬項目混入を再現し、探索・補給ジョブ生成・開始・完了を確認しました。
+- Medieval Overhaul併用構成でも補給テスト9項目はPASS。ただし、SYR単独でも再現するFMOD音声エラーが起動時に2件あり、厳格なログ正常性判定は未通過です。
+- 一括補給ジョブそのものの完了、複数ポーン間の予約競合、セーブ再読込、各種特殊条件などは未検証。詳細な実行ログと残課題は[VALIDATION.md](VALIDATION.md)を参照してください。
+- Steam Workshop未公開。公開前候補として継続検証中です。
 
 ## English
 
@@ -35,7 +37,7 @@ Requires Harmony and LWM's Fuel Filter (Continued); load after both. Normal and 
 
 The category checkbox can select hidden descendants; unrestricted filter pasting is another possible entry point. A non-haulable building in the filter can produce an `Everything` request, which the game's reachable search rejects. The first action that polluted the investigated save is unknown.
 
-Pre-release candidate: managed regression checks do not establish in-game job, pathfinding, atomic-quantity or mod-compatibility success. No Steam Workshop publication yet.
+Real-game isolated RimWorld 1.6 Quickstart now passes 9/9 checks in Vanilla, including an actual pawn completing a campfire refuel job with a polluted fuel filter. The same nine functional checks pass with Medieval Overhaul, but that environment has two pre-existing SYR/MO FMOD startup errors, so a strict clean-log PASS has not been established. Atomic refuel job completion, save/reload, competing reservations and further compatibility remain untested; see [VALIDATION.md](VALIDATION.md). Pre-release; no Workshop publication yet.
 
 ## Build / tests
 
