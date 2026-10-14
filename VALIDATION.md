@@ -1,27 +1,36 @@
 # Validation — 2026-10-14
 
+## Tested source and environment
+
+- Fix: source and shipped DLL on `fix/restrict-fuel-search`; real-game probe source at `9a4559f127d1858c9c4b220939549db7b0dad79b`.
+- Genuine isolated RimWorldLinux **1.6.4871 rev600** on private self-hosted GitHub Actions, with separate per-test saves/configuration.
+- Actual **LWM's Fuel Filter (Continued)** 1.6 provider, Steam Workshop 3288440994; provider DLL SHA-256 `3ccb8d42c11ab9dd5ecc88e45b97dd3db6161ecedbc90943eecd26d4541bc154`.
+- Harmony and RimWorks Quickstarts staged and loaded in the isolated host.
+- No normal player saves, local Steam account config or Workshop publication modified.
+
 ## Completed
 
-- Source and test builds: Release / .NET Framework 4.8; 0 warnings, 0 errors.
-- Managed regression: 9 assertions passed.
-- Reproduced `ThingFilter.BestThingRequest == Everything` with a permitted haulable fuel and a hidden non-haulable building.
-- Confirmed the patch requests `HaulableEver`, accepts selected supported fuel, rejects user-disabled fuel, rejects unsupported entries, handles empty selections, and leaves both filter allowance lists unchanged.
-- `git diff --check`: passed.
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Release .NET Framework 4.8 source and test builds (prior developer run) | Recorded PASS, 0 warnings/errors | Original implementation validation |
+| Prior managed regression assertions (Def-only) | Recorded 9/9 PASS; not rerun here | Original implementation validation |
+| GitHub-hosted offline source/package contract checks | **12/12 PASS** | [CI run 38550809115](https://github.com/sucRo-RimWorld/LWM-s-Fuel-Filter-Fix/actions/runs/38550809115) |
+| Native RimWorld 1.6 Mod load, Harmony prefixes, real `ThingFilter` semantics, polluted filter request | **PASS**, Unity errors 0 | [native run 38552492151](https://github.com/sucRo-RimWorld/Ancient-Medieval-Japan-Project/actions/runs/38552492151) |
+| Native actual map + colonist + campfire/wood, polluted LWM filter, normal search, forbid/disallow cases, atomic candidate search, vanilla WorkGiver job start and campfire refuel | **9/9 PASS**, Unity errors 0, process exit 0 | [Vanilla run 38554162023](https://github.com/sucRo-RimWorld/Ancient-Medieval-Japan-Project/actions/runs/38554162023) |
+| Same real job/filters with VEF + SYR Processor + Medieval Overhaul | **9/9 functional assertions PASS**, Quickstart runtime errors 0; strict startup log gate **FAIL** for two FMOD audio errors | [MO run 38554166037](https://github.com/sucRo-RimWorld/Ancient-Medieval-Japan-Project/actions/runs/38554166037) |
 
-Test dependencies: local RimWorld 1.6.4871 and LWM's Fuel Filter (Continued) 1.1.2. Tests use real managed filter definition lists and request generation, with minimal uninitialized ThingDef fixtures and a Def-only `Allows(Thing)` override to avoid Unity initialization. These are not full game/runtime tests. Harmony patch installation is not exercised by this managed test.
+The MO test's two startup errors were `Cannot create FMOD::Sound instance for clip "" (Unsupported file or audio format)`. An independent native **SYR-only** Linux diagnostic reproduces FMOD audio errors without the Fix: [control run 38552500832](https://github.com/sucRo-RimWorld/Ancient-Medieval-Japan-Project/actions/runs/38552500832). The host harness separately records the nine functional refueling assertions and full unfiltered audio logs. No claim of clean MO startup is made.
 
-## Required before release
+The runtime test genuinely executes the original game WorkGiver and starts a pawn's refuel Job. After 3,600 game ticks it verifies that the campfire's `CompRefuelable.Fuel` increased. It also calls actual patched `FindBestFuel` and `FindAllFuel` while the selected fuel filter has a hidden non-haulable entry.
 
-Run in an isolated game profile, without modifying the live colony or its configuration:
+## Remaining coverage / not proven
 
-1. With LWM enabled and this fix disabled, reproduce the poisoned-filter failure on a campfire and torch.
-2. Enable the fix and load the same fixture; verify refuel jobs complete without changing the filter manually.
-3. Permit wood only, place closer coal nearby, and verify coal is not used.
-4. Disallow all fuel and verify no refuel job starts.
-5. Verify forbidden, reserved and unreachable fuel is not taken.
-6. Verify HP/quality/special filter conditions where applicable.
-7. Verify atomic refueling honors both the user's filter and the complete required amount.
-8. Verify a clean filter and a building without an LWM filter retain normal behavior.
-9. Repeat with Medieval Overhaul and inspect startup/operation logs for Harmony errors and `Cannot do ClosestThingReachable searching everything without restriction`.
+1. Establish an **unpatched** equivalent game-map baseline with this exact poisoned saved-filter fixture (the poisoned `Everything` request itself is reproduced).
+2. Run the same test with a torch and verify alternate actual fuel types/closer disallowed fuel, including mod-added fuel.
+3. Verify HP/quality/special `ThingFilter` conditions where the fuel Def supports them.
+4. Verify competing pawns, reservations, unreachable resources and enough-resource failure in live jobs (forbidden fuel already tested on map).
+5. Verify **execution** of the complete all-at-once refuel Job, not merely the game's `FindAllFuel` candidate search.
+6. Test save/reload filter persistence and clean-filters/no-LWM-comp fallback over live jobs.
+7. Re-run compatibility against further Mod combinations and inspect their own audio/runtime baselines if they fail.
 
-No game runtime test, Workshop upload, or live ModsConfig change was performed in this implementation pass.
+**Merge/publication criterion:** keep PR #1 in Draft until the remaining release-blocking checks are resolved. No Steam Workshop upload has been performed. Native functional PASS does not mean all game-content or mod-compatibility cases have been covered.
