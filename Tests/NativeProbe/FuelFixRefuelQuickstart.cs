@@ -54,7 +54,12 @@ namespace LWMsFuelFilterFix.NativeProbe
                 var fireDef = DefDatabase<ThingDef>.GetNamed("Campfire");
                 var woodDef = DefDatabase<ThingDef>.GetNamed("WoodLog");
                 var wallDef = DefDatabase<ThingDef>.GetNamed("Wall");
-                campfire = GenSpawn.Spawn(ThingMaker.MakeThing(fireDef), candidates[0],
+                // MO makes Campfire stuff-buildable; use a valid stuff Def explicitly
+                // instead of relying on ThingMaker's error-logging fallback.
+                ThingDef stuff = fireDef.MadeFromStuff ? GenStuff.DefaultStuffFor(fireDef) : null;
+                if (fireDef.MadeFromStuff && stuff == null)
+                    throw new InvalidOperationException("campfire has no valid build material");
+                campfire = GenSpawn.Spawn(ThingMaker.MakeThing(fireDef, stuff), candidates[0],
                     map, WipeMode.Vanish);
                 fuel = ThingMaker.MakeThing(woodDef);
                 fuel.stackCount = Math.Min(woodDef.stackLimit, 75);
