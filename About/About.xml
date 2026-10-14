@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>LWM's Fuel Filter Fix</name>
+  <author>sucRo</author>
+  <packageId>sucro.lwmsfuelfilterfix</packageId>
+  <supportedVersions><li>1.6</li></supportedVersions>
+  <modVersion>0.1.0</modVersion>
+  <modDependencies>
+    <li><packageId>brrainz.harmony</packageId><displayName>Harmony</displayName><steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl></li>
+    <li><packageId>zal.lwmfuelfilter</packageId><displayName>LWM's Fuel Filter (Continued)</displayName><steamWorkshopUrl>steam://url/CommunityFilePage/3288440994</steamWorkshopUrl></li>
+  </modDependencies>
+  <loadAfter><li>brrainz.harmony</li><li>zal.lwmfuelfilter</li></loadAfter>
+  <url>https://github.com/sucRo-RimWorld/LWM-s-Fuel-Filter-Fix</url>
+  <description>燃料フィルタに非表示の非対応項目が混入すると、燃料があっても補給できなくなる問題を回避します。設備が対応する燃料とユーザーの許可設定の両方を満たす運搬可能な物だけを探索します。既存の保存済みフィルタは書き換えません。
+
+Prevents hidden unsupported entries in LWM's Fuel Filter from stopping refueling despite available fuel. Searches haulable items accepted by both the building's fuel definition and the user's filter. Does not rewrite saved filters.</description>
+</ModMetaData>

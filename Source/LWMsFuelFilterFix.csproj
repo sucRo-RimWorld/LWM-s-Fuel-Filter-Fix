@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>LWMsFuelFilterFix</AssemblyName>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>../1.6/Assemblies/</OutputPath>
+    <RimWorldDir Condition="'$(RimWorldDir)' == ''">$(MSBuildThisFileDirectory)../../..</RimWorldDir>
+    <WorkshopDir Condition="'$(WorkshopDir)' == ''">$(RimWorldDir)/../../workshop/content/294100</WorkshopDir>
+    <HarmonyDll Condition="'$(HarmonyDll)' == ''">$(WorkshopDir)/2009463077/1.6/Assemblies/0Harmony.dll</HarmonyDll>
+    <FuelFilterDll Condition="'$(FuelFilterDll)' == ''">$(WorkshopDir)/3288440994/1.6/Assemblies/FuelFilter.dll</FuelFilterDll>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net48" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="Assembly-CSharp"><HintPath>$(RimWorldDir)/RimWorldWin64_Data/Managed/Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(RimWorldDir)/RimWorldWin64_Data/Managed/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(HarmonyDll)</HintPath><Private>false</Private></Reference>
+    <Reference Include="FuelFilter"><HintPath>$(FuelFilterDll)</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>
