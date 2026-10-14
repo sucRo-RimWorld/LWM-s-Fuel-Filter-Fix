@@ -1,0 +1,29 @@
+name: LWM Fuel Filter source contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "Source/**"
+      - "Tests/**"
+      - "About/**"
+      - "1.6/Assemblies/**"
+      - ".github/workflows/source-contract.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lwms-fuel-filter-source-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Validate metadata, Harmony target contracts and committed DLL
+        run: python3 -m unittest discover -s Tests -p test_source_contract.py -v
