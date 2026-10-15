@@ -1,0 +1,38 @@
+name: LWM subscriber payload preflight (no Steam)
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: lwm-subscriber-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  subscriber-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test exact subscriber allowlist, deterministic ZIP and tamper rejection
+        run: python3 -m unittest discover -s Tests -p 'test_workshop_private.py' -v
+      - name: Build and verify reviewed 1.6 subscriber candidate
+        run: |
+          python3 Scripts/stage_workshop.py --output Dist
+          python3 Scripts/stage_workshop.py --verify Dist/LWM-s-Fuel-Filter-Fix-1.6.zip
+          (cd Dist && sha256sum -c sha256.txt)
+          python3 Scripts/steam_private.py --archive Dist/LWM-s-Fuel-Filter-Fix-1.6.zip --operation preflight
+      - name: Retain immutable source-specific candidate (not Steam upload)
+        uses: actions/upload-artifact@v4
+        with:
+          name: lwm-fuel-candidate
+          path: |
+            Dist/LWM-s-Fuel-Filter-Fix-1.6.zip
+            Dist/sha256.txt
+          if-no-files-found: error
+          retention-days: 7
