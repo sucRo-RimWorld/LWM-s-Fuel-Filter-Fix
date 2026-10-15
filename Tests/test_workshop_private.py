@@ -7,6 +7,16 @@ from Scripts import stage_workshop as stage
 
 
 class SubscriberCandidateTests(unittest.TestCase):
+    def test_private_jobs_reuse_only_reviewed_org_publisher_label(self):
+        workflow = (stage.ROOT / ".github/workflows/steam-private.yml").read_text(encoding="utf-8")
+        self.assertEqual(workflow.count("runs-on: [self-hosted, linux, steamcmd-private-publisher]"), 2)
+        self.assertNotIn("lwm-steamcmd-private-publisher", workflow)
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertNotIn("  pull_request:", workflow)
+        self.assertNotIn("  push:", workflow)
+        self.assertIn("environment: steam-workshop-private", workflow)
+        self.assertIn('[[ "$GITHUB_REPOSITORY" == "sucRo-RimWorld/LWM-s-Fuel-Filter-Fix" ]]', workflow)
+
     def test_source_contract_and_allowlist(self):
         data = stage.source_payload()
         self.assertEqual(set(data), set(stage.FILES))
