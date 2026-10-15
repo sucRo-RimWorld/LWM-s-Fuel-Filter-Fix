@@ -1,0 +1,124 @@
+name: LWM Fuel Filter private SteamCMD (manual only)
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'preflight / host_check / create_private / update_private'
+        type: choice
+        required: true
+        default: preflight
+        options:
+          - preflight
+          - host_check
+          - create_private
+          - update_private
+      exact_main_sha:
+        description: '40-character reviewed current main commit SHA'
+        required: true
+        type: string
+      confirmation:
+        description: 'CREATE_PRIVATE_ONLY or UPDATE_PRIVATE_ONLY for a Steam mutation'
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: lwm-steamcmd-private
+  cancel-in-progress: false
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Enforce owner, main-only exact SHA, and private confirmation
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.exact_main_sha }}
+          MODE: ${{ inputs.mode }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REPOSITORY" == "sucRo-RimWorld/LWM-s-Fuel-Filter-Fix" ]]
+          [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ && "$EXPECTED_SHA" == "$GITHUB_SHA" ]]
+          case "$MODE" in
+            preflight|host_check) [[ -z "$CONFIRMATION" ]] ;;
+            create_private) [[ "$CONFIRMATION" == "CREATE_PRIVATE_ONLY" ]] ;;
+            update_private) [[ "$CONFIRMATION" == "UPDATE_PRIVATE_ONLY" ]] ;;
+            *) exit 2 ;;
+          esac
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run subscriber source and private VDF negative checks
+        run: python3 -m unittest discover -s Tests -p 'test_workshop_private.py' -v
+      - name: Build byte-verified candidate with private visibility VDF
+        run: |
+          python3 Scripts/stage_workshop.py --output Dist
+          python3 Scripts/steam_private.py --archive Dist/LWM-s-Fuel-Filter-Fix-1.6.zip --operation preflight
+          (cd Dist && sha256sum -c sha256.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lwm-private-candidate
+          path: |
+            Dist/LWM-s-Fuel-Filter-Fix-1.6.zip
+            Dist/sha256.txt
+          if-no-files-found: error
+          retention-days: 7
+  host_check:
+    needs: preflight
+    if: ${{ inputs.mode == 'host_check' }}
+    runs-on: [self-hosted, linux, lwm-steamcmd-private-publisher]
+    environment: steam-workshop-private
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: lwm-private-candidate
+          path: Dist
+      - name: Validate host-local credentials boundary and candidate (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd Dist && sha256sum -c sha256.txt)
+          python3 Scripts/steam_private.py --archive Dist/LWM-s-Fuel-Filter-Fix-1.6.zip --operation host_check
+  private_upload:
+    needs: preflight
+    if: ${{ inputs.mode == 'create_private' || inputs.mode == 'update_private' }}
+    runs-on: [self-hosted, linux, lwm-steamcmd-private-publisher]
+    environment: steam-workshop-private
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: lwm-private-candidate
+          path: Dist
+      - name: Recheck source SHA and immutable subscriber payload
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.exact_main_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_SHA" == "$EXPECTED_SHA" ]]
+          (cd Dist && sha256sum -c sha256.txt)
+          python3 Scripts/stage_workshop.py --verify Dist/LWM-s-Fuel-Filter-Fix-1.6.zip
+      - name: Create or update creator-private item only (SteamCMD on isolated host)
+        shell: bash
+        env:
+          OPERATION: ${{ inputs.mode }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          python3 Scripts/steam_private.py \
+            --archive Dist/LWM-s-Fuel-Filter-Fix-1.6.zip \
+            --operation "$OPERATION" \
+            --confirm "$CONFIRMATION"
