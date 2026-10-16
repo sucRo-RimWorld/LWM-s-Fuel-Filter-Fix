@@ -41,7 +41,7 @@ class SubscriberCandidateTests(unittest.TestCase):
             stage.stage(root / "dist")
             archive = root / "dist" / stage.ZIP_NAME
             steamcmd = root / "steamcmd.sh"
-            steamcmd.write_text("#!/bin/sh\\nexit 99\\n", encoding="utf-8")
+            steamcmd.write_text("#!/bin/sh\nexit 99\n", encoding="utf-8")
             steamcmd.chmod(0o700)
             private = root / "lwm-private"
             private.mkdir(mode=0o700)
