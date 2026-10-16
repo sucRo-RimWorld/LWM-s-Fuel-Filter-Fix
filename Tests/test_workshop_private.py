@@ -51,8 +51,10 @@ class SubscriberCandidateTests(unittest.TestCase):
             data = vdf.read_text(encoding="utf-8")
             self.assertIn('"visibility" "2"', data)
             self.assertIn('"publishedfileid" "0"', data)
-            self.assertIn("▼ English", data)
-            self.assertIn("▼ 日本語", data)
+            self.assertIn("▼ English\\n", data.replace("\\r", ""))
+            self.assertIn("▼ 日本語\\n", data.replace("\\r", ""))
+            self.assertNotIn(r"▼ English\\n", data)
+            self.assertNotIn(r"▼ 日本語\\n", data)
             self.assertIn("0.1.0 — Initial private build", data)
             self.assertIn("3288440994", data)
             self.assertNotIn('"tags"', data)  # SteamCMD does not reliably set tags.
