@@ -24,9 +24,11 @@ UPDATE_CONFIRMATION = "UPDATE_PRIVATE_ONLY"
 
 
 def kv(value):
-    if "\x00" in value:
+    if any(ord(char) < 32 and char not in "\r\n\t" for char in value):
         raise ValueError("Unsafe Steam KeyValues field")
-    return value.replace("\\", "\\\\").replace('"', '\\"').replace("\r", "").replace("\n", "\\n")
+    # SteamCMD renders escaped backslash-n literally on Workshop pages.
+    # Preserve actual line breaks inside quoted VDF values.
+    return value.replace("\\", "\\\\").replace('"', '\\"').replace("\r\n", "\n").replace("\r", "\n").replace("\t", "\\t")
 
 
 def write_vdf(path, content_dir, item_id):
