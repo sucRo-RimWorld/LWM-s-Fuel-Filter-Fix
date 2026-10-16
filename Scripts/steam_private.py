@@ -24,16 +24,21 @@ UPDATE_CONFIRMATION = "UPDATE_PRIVATE_ONLY"
 
 
 def kv(value):
-    if "\x00" in value:
+    if any(ord(char) < 32 and char not in "\r\n\t" for char in value):
         raise ValueError("Unsafe Steam KeyValues field")
-    return value.replace("\\", "\\\\").replace('"', '\\"').replace("\r", "").replace("\n", "\\n")
+    # SteamCMD renders escaped backslash-n literally on Workshop pages.
+    # Preserve actual line breaks inside quoted VDF values.
+    return value.replace("\\", "\\\\").replace('"', '\\"').replace("\r\n", "\n").replace("\r", "\n").replace("\t", "\\t")
 
 
 def write_vdf(path, content_dir, item_id):
     metadata = ET.parse(content_dir / "About" / "About.xml").getroot()
-    description = (metadata.findtext("description") or "").strip()
-    if not description:
-        raise ValueError("Workshop description absent")
+    if metadata.findtext("packageId") != "sucro.lwmsfuelfilterfix":
+        raise ValueError("Unexpected publisher metadata identity")
+    description = (ROOT / "Docs/WorkshopDescription.txt").read_text(encoding="utf-8").strip()
+    changenote = (ROOT / "Docs/WorkshopChangenote.txt").read_text(encoding="utf-8").strip()
+    if not description or not changenote:
+        raise ValueError("Workshop description or changenote absent")
     fields = {
         "appid": APP_ID,
         "publishedfileid": str(item_id),
@@ -42,7 +47,7 @@ def write_vdf(path, content_dir, item_id):
         "visibility": VISIBILITY,
         "title": TITLE,
         "description": description,
-        "changenote": "Private test build: correct refueling with hidden unsupported filter entries.",
+        "changenote": changenote,
     }
     lines = ['"workshopitem"', "{"]
     lines.extend('    "' + key + '" "' + kv(value) + '"' for key, value in fields.items())
@@ -193,7 +198,14 @@ def main():
                                  "item_id": item_id or result_id,
                                  "private_verified": False, "source_sha": os.environ.get("GITHUB_SHA", ""),
                                  "candidate_sha256": digest})
-    print("STEAMCMD_UPLOAD_REPORTED_SUCCESS; creator-private visibility and subscriber bytes UNVERIFIED")
+    result_item_id = item_id or result_id
+    # Workshop IDs are public references, not Steam credentials.
+    # Expose only the numeric ID to a downstream authenticated Steamworks tag job.
+    github_output = os.environ.get("GITHUB_OUTPUT") if os.environ.get("GITHUB_ACTIONS") == "true" else None
+    if github_output:
+        with open(github_output, "a", encoding="utf-8") as out:
+            out.write("publishedfileid=" + str(result_item_id) + chr(10))
+    print(f"STEAMCMD_UPLOAD_REPORTED_SUCCESS item_id={result_item_id}; creator-private visibility and subscriber bytes UNVERIFIED")
 
 
 if __name__ == "__main__":

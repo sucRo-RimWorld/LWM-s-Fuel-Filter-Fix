@@ -7,6 +7,10 @@ import unittest
 import zipfile
 from pathlib import Path
 from Scripts import stage_workshop as stage
+sys.path.insert(0, str(stage.ROOT / "Scripts"))
+from Scripts import steam_private
+from Scripts import steamworks_lwm
+from unittest.mock import patch
 
 
 class SubscriberCandidateTests(unittest.TestCase):
@@ -19,6 +23,70 @@ class SubscriberCandidateTests(unittest.TestCase):
         self.assertNotIn("  push:", workflow)
         self.assertIn("environment: steam-workshop-private", workflow)
         self.assertIn('[[ "$GITHUB_REPOSITORY" == "sucRo-RimWorld/LWM-s-Fuel-Filter-Fix" ]]', workflow)
+
+    def test_chat_issue_dispatch_is_whitelisted_and_release_is_main_pinned(self):
+        text = (stage.ROOT / ".github/workflows/steam-private.yml").read_text(encoding="utf-8")
+        self.assertIn("issues:", text)
+        self.assertIn("types: [opened]", text)
+        self.assertIn("github.event.issue.user.login == 'sucRo0629'", text)
+        self.assertIn("github.event.issue.title == '[publish:lwm-private-create]'", text)
+        self.assertIn("github.event.issue.title == '[publish:lwm-private-preflight]'", text)
+        self.assertIn("source_sha=([0-9a-f]{40})", text)
+        self.assertIn('"$exact_sha" == "$GITHUB_SHA"', text)
+        self.assertIn("needs: [request_gate, preflight, tag_readiness]", text)
+        self.assertIn("ISSUE_ARM_CREATE: ${{ needs.request_gate.outputs.arm_create }}", text)
+        self.assertIn("export LWM_ALLOW_PRIVATE_CREATE=YES", text)
+        self.assertIn("environment: steam-workshop-private", text)
+        self.assertIn("name: Apply Mod and 1.6 category tags via authenticated Steamworks", text)
+        self.assertNotIn('  push:', text)
+
+    def test_reviewed_description_changenote_and_visibility_reach_vdf(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            content = Path(tmp)
+            # Metadata in the checkout is the same metadata packaged by the allowlist.
+            (content / "About").mkdir()
+            (content / "About/About.xml").write_bytes(
+                (stage.ROOT / "About/About.xml").read_bytes()
+            )
+            vdf = content / "item.vdf"
+            steam_private.write_vdf(vdf, content, 0)
+            data = vdf.read_text(encoding="utf-8")
+            self.assertIn('"visibility" "2"', data)
+            self.assertIn('"publishedfileid" "0"', data)
+            self.assertIn("▼ English" + chr(10), data)
+            self.assertIn("▼ 日本語" + chr(10), data)
+            self.assertNotIn("▼ English" + chr(92) + "n", data)
+            self.assertNotIn("▼ 日本語" + chr(92) + "n", data)
+            self.assertIn("0.1.0 — Initial private build", data)
+            self.assertIn("3288440994", data)
+            self.assertNotIn('"tags"', data)  # SteamCMD does not reliably set tags.
+
+    def test_tags_are_authenticated_and_do_not_repeat_ambiguous_submissions(self):
+        self.assertEqual(steamworks_lwm.source_tags(), ("Mod", "1.6"))
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict(os.environ, {"LOCALAPPDATA": tmp}):
+                with patch.object(steamworks_lwm, "check_session"), patch.object(
+                    steamworks_lwm, "call_agent", return_value={
+                        "success": True, "publishedFileId": "3819497324",
+                        "steamAppId": 294100, "steamUserLoggedOn": True,
+                        "submitResult": "OK", "timedOut": False,
+                        "userNeedsToAcceptWorkshopLegalAgreement": False,
+                        "tags": ["Mod", "1.6"],
+                    }
+                ) as send:
+                    steamworks_lwm.sync(Path(tmp) / "dummy", "3819497324", "38910030001")
+                    self.assertEqual(send.call_count, 1)
+                    steamworks_lwm.sync(Path(tmp) / "dummy", "3819497324", "38910030001")
+                    self.assertEqual(send.call_count, 1)
+                    p = steamworks_lwm.receipt_path("3819497324", "38910030001")
+                    self.assertEqual(__import__("json").loads(p.read_text())["status"], "OK")
+                with patch.object(steamworks_lwm, "check_session"), patch.object(
+                    steamworks_lwm, "call_agent", side_effect=RuntimeError("unknown")
+                ):
+                    with self.assertRaises(RuntimeError):
+                        steamworks_lwm.sync(Path(tmp) / "dummy", "3819497325", "38910030002")
+                    with self.assertRaises(ValueError):
+                        steamworks_lwm.sync(Path(tmp) / "dummy", "3819497325", "38910030002")
 
     def test_source_contract_and_allowlist(self):
         data = stage.source_payload()

@@ -1,0 +1,7 @@
+0.1.0 — Initial private build
+Fixes fuel searches blocked by hidden unsupported entries in LWM's Fuel Filter, without rewriting saved filters.
+RimWorld 1.6; requires Harmony and LWM's Fuel Filter (Continued).
+
+0.1.0 — 初回非公開版
+LWM's Fuel Filterで非表示の非対応項目が燃料探索を妨げる問題を修正。保存済みフィルタは変更しない。
+RimWorld 1.6対応。HarmonyとLWM's Fuel Filter (Continued)が必要。
