@@ -51,9 +51,19 @@ CCTO-for-VPE and LWM-s-Fuel-Filter-Fix, and the two reviewed main workflows:
 Both repositories' `steam-workshop-private` environments require human approval.
 The real CCTO [runner check #38886985798](https://github.com/sucRo-RimWorld/CCTO-for-VPE/actions/runs/38886985798)
 passed. The real LWM [host check #38887007326](https://github.com/sucRo-RimWorld/LWM-s-Fuel-Filter-Fix/actions/runs/38887007326)
-reached the same host and verified the candidate archive, but failed because
-`LWM_STEAMCMD_BIN`, `LWM_STEAM_ACCOUNT`, and `LWM_STEAM_STATE` were
-not yet set in the service environment. Do not call this LWM host PASS.
+reached the same host and verified the candidate archive, but initially failed
+because `LWM_STEAMCMD_BIN`, `LWM_STEAM_ACCOUNT`, and `LWM_STEAM_STATE`
+were absent in the service environment. This historical failure is superseded
+by [run #38891845003](https://github.com/sucRo-RimWorld/LWM-s-Fuel-Filter-Fix/actions/runs/38891845003):
+the author added a separate host-local `lwm-publisher.env` and independent
+`lwm-workshop` state directory (0700) to the existing publisher's systemd
+drop-in, preserving CCTO environment variables. After a publisher-only
+service restart, `preflight` and `host_check` **PASS** on main
+`a4d65b57f17bd55434437f2184e218a856ed27c3`, with the real log
+`LWM-s-Fuel-Filter-Fix-1.6.zip: OK` and
+`HOST_CHECK_PASS no item; first-private-create NOT armed`.
+This confirms host-local prerequisites and artifact receipt only; no SteamCMD
+invocation, Workshop item creation, actual login check, or visibility audit occurred.
 The separate native-test runners must remain untouched.
 
 Sharing means one runner/SteamCMD installation, *not* one Workshop ID/state:
