@@ -7,6 +7,7 @@ import unittest
 import zipfile
 from pathlib import Path
 from Scripts import stage_workshop as stage
+sys.path.insert(0, str(stage.ROOT / "Scripts"))
 from Scripts import steam_private
 from Scripts import steamworks_lwm
 from unittest.mock import patch
