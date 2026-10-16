@@ -1,0 +1,33 @@
+▼ English
+LWM's Fuel Filter Fix — RimWorld 1.6
+
+Fixes a refueling failure in LWM's Fuel Filter (Continued): hidden unsupported entries in a saved fuel filter can prevent a pawn from finding wood or logs even when allowed fuel is available.
+
+The fix checks both the building's supported fuels and the player's fuel filter, then searches only haulable items. Existing fuel filters and saved-game data are not rewritten.
+
+Required mods:
+• Harmony
+• LWM's Fuel Filter (Continued) (Workshop 3288440994)
+
+Load this fix after its dependencies. This is an independent patch, not a replacement for LWM's Fuel Filter.
+
+Validation: RimWorld 1.6 native refueling scenarios passed 9/9 in Vanilla and 9/9 with Medieval Overhaul. The MO setup has two independently reproduced upstream FMOD startup errors; it is not a clean error-free startup result. Some edge cases and save/reload combinations are untested.
+
+Issues and source: https://github.com/sucRo-RimWorld/LWM-s-Fuel-Filter-Fix
+
+▼ 日本語
+LWM's Fuel Filter Fix — RimWorld 1.6
+
+LWM's Fuel Filter (Continued)で、燃料フィルタに非表示の非対応項目が混入すると、木材や原木を許可していても補給できなくなる問題を修正する。
+
+設備が使用可能な燃料と、プレイヤーが許可した燃料の両方を満たす運搬可能なアイテムだけを探索する。既存の燃料フィルタやセーブデータは書き換えない。
+
+前提Mod：
+• Harmony
+• LWM's Fuel Filter (Continued)（Workshop 3288440994）
+
+前提Modの後に読み込む。LWM's Fuel Filter本体を置き換えるModではない。
+
+検証：RimWorld 1.6の実機でVanilla 9/9、Medieval Overhaul併用9/9の補給機能テストを通過。MO環境では上流由来と確認済みのFMOD起動エラーが2件発生する。特殊条件やセーブ再読込の一部は未検証。
+
+不具合報告・ソース：https://github.com/sucRo-RimWorld/LWM-s-Fuel-Filter-Fix
