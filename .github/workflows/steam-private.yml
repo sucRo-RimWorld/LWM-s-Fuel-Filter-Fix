@@ -1,4 +1,4 @@
-name: LWM Fuel Filter private SteamCMD (manual only)
+name: LWM Fuel Filter private Workshop publisher
 on:
   # A chat-connected GitHub issue is the release request. There is no code
   # execution from issue text; the named account, exact title and source SHA
@@ -84,7 +84,7 @@ jobs:
           echo "confirmation=$confirm" >> "$GITHUB_OUTPUT"
           echo "arm_create=$arm" >> "$GITHUB_OUTPUT"
   preflight:
-    needs: request_gate:
+    needs: request_gate
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -130,14 +130,15 @@ jobs:
   host_check:
     # Organization-scoped Steam publisher (not a CCTO repository-scoped runner).
     # Runner-group policy must allow ONLY reviewed main-branch publisher workflows.
-    needs: preflight
-    if: ${{ inputs.mode == 'host_check' }}
+    needs: [request_gate, preflight]
+    if: ${{ needs.request_gate.outputs.mode == 'host_check' }}
     runs-on: [self-hosted, linux, steamcmd-private-publisher]
     environment: steam-workshop-private
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ needs.request_gate.outputs.exact_sha }}
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
@@ -169,14 +170,15 @@ jobs:
     outputs:
       publishedfileid: ${{ steps.upload.outputs.publishedfileid }}
     # The shared OS account has separate LWM_* host state; never use CCTO_STEAM_STATE.
-    needs: preflight
-    if: ${{ inputs.mode == 'create_private' || inputs.mode == 'update_private' }}
+    needs: [request_gate, preflight, tag_readiness]
+    if: ${{ needs.request_gate.outputs.mode == 'create_private' || needs.request_gate.outputs.mode == 'update_private' }}
     runs-on: [self-hosted, linux, steamcmd-private-publisher]
     environment: steam-workshop-private
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ needs.request_gate.outputs.exact_sha }}
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
