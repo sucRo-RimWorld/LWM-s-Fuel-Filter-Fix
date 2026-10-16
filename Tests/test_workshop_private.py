@@ -30,6 +30,7 @@ class SubscriberCandidateTests(unittest.TestCase):
         self.assertIn("types: [opened]", text)
         self.assertIn("github.event.issue.user.login == 'sucRo0629'", text)
         self.assertIn("github.event.issue.title == '[publish:lwm-private-create]'", text)
+        self.assertIn("github.event.issue.title == '[publish:lwm-private-preflight]'", text)
         self.assertIn("source_sha=([0-9a-f]{40})", text)
         self.assertIn('"$exact_sha" == "$GITHUB_SHA"', text)
         self.assertIn("needs: [request_gate, preflight, tag_readiness]", text)
