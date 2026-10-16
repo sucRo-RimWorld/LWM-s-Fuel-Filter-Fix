@@ -200,11 +200,14 @@ jobs:
         env:
           OPERATION: ${{ needs.request_gate.outputs.mode }}
           CONFIRMATION: ${{ needs.request_gate.outputs.confirmation }}
-          # Authorized per-request only after trusted issue author + main SHA +
-          # protected GitHub Environment + authenticated Steamworks readiness.
-          LWM_ALLOW_PRIVATE_CREATE: ${{ needs.request_gate.outputs.arm_create }}
+          # The issue request arms only this job; never override a host-owned
+          # flag in the existing manual workflow_dispatch route.
+          ISSUE_ARM_CREATE: ${{ needs.request_gate.outputs.arm_create }}
         run: |
           set -euo pipefail
+          if [[ "$ISSUE_ARM_CREATE" == "YES" && "$OPERATION" == "create_private" ]]; then
+            export LWM_ALLOW_PRIVATE_CREATE=YES
+          fi
           python3 Scripts/steam_private.py \
             --archive Dist/LWM-s-Fuel-Filter-Fix-1.6.zip \
             --operation "$OPERATION" \
