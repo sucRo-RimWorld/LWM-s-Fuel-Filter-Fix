@@ -147,9 +147,11 @@ def main():
     state = read_state(state_path)
     if args.operation == "host_check":
         if state is None:
-            if os.environ.get("LWM_ALLOW_PRIVATE_CREATE") != "YES":
-                raise ValueError("Publisher not armed for first private creation")
-            print("HOST_CHECK_PASS first-private-create requires manual authorization")
+            # A read-only host probe must never require permission to create a
+            # Workshop item. Actual creation still requires the explicit flag
+            # and confirmation enforced by validate_operation().
+            armed = os.environ.get("LWM_ALLOW_PRIVATE_CREATE") == "YES"
+            print("HOST_CHECK_PASS no item; first-private-create " + ("armed" if armed else "NOT armed"))
         elif state.get("status") == "created" and state.get("account") == account:
             print("HOST_CHECK_PASS existing item; visibility must be checked on Steam")
         else:
