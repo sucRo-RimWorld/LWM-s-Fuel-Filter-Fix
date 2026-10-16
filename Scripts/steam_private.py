@@ -202,7 +202,7 @@ def main():
     github_output = os.environ.get("GITHUB_OUTPUT") if os.environ.get("GITHUB_ACTIONS") == "true" else None
     if github_output:
         with open(github_output, "a", encoding="utf-8") as out:
-            out.write(f"publishedfileid={result_item_id}\\n")
+            out.write("publishedfileid=" + str(result_item_id) + chr(10))
     print(f"STEAMCMD_UPLOAD_REPORTED_SUCCESS item_id={result_item_id}; creator-private visibility and subscriber bytes UNVERIFIED")
 
 
