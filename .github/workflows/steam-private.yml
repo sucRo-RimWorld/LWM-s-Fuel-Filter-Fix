@@ -1,5 +1,10 @@
 name: LWM Fuel Filter private SteamCMD (manual only)
 on:
+  # A chat-connected GitHub issue is the release request. There is no code
+  # execution from issue text; the named account, exact title and source SHA
+  # are validated before any publisher job is allocated.
+  issues:
+    types: [opened]
   workflow_dispatch:
     inputs:
       mode:
@@ -26,20 +31,73 @@ concurrency:
   group: lwm-steamcmd-private
   cancel-in-progress: false
 jobs:
+  request_gate:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'issues' && github.event.issue.user.login == 'sucRo0629' && (github.event.issue.title == '[publish:lwm-private-create]' || github.event.issue.title == '[publish:lwm-private-update]')) }}
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.gate.outputs.mode }}
+      exact_sha: ${{ steps.gate.outputs.exact_sha }}
+      confirmation: ${{ steps.gate.outputs.confirmation }}
+      arm_create: ${{ steps.gate.outputs.arm_create }}
+    steps:
+      - name: Validate exact author's release request or original manual dispatch
+        id: gate
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ACTOR: ${{ github.event.issue.user.login }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          DISPATCH_MODE: ${{ inputs.mode }}
+          DISPATCH_SHA: ${{ inputs.exact_main_sha }}
+          DISPATCH_CONFIRM: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REPOSITORY" == "sucRo-RimWorld/LWM-s-Fuel-Filter-Fix" ]]
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          if [[ "$EVENT_NAME" == "issues" ]]; then
+            [[ "$ACTOR" == "sucRo0629" ]]
+            [[ "$ISSUE_BODY" =~ ^source_sha=([0-9a-f]{40})$ ]] || exit 2
+            exact_sha="${BASH_REMATCH[1]}"
+            case "$ISSUE_TITLE" in
+              '[publish:lwm-private-create]') mode=create_private; confirm=CREATE_PRIVATE_ONLY; arm=YES ;;
+              '[publish:lwm-private-update]') mode=update_private; confirm=UPDATE_PRIVATE_ONLY; arm=NO ;;
+              *) exit 2 ;;
+            esac
+          elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            mode="$DISPATCH_MODE"
+            exact_sha="$DISPATCH_SHA"
+            confirm="$DISPATCH_CONFIRM"
+            arm=NO
+            case "$mode" in
+              preflight|host_check) [[ -z "$confirm" ]] ;;
+              create_private) [[ "$confirm" == CREATE_PRIVATE_ONLY ]] ;;
+              update_private) [[ "$confirm" == UPDATE_PRIVATE_ONLY ]] ;;
+              *) exit 2 ;;
+            esac
+          else
+            exit 2
+          fi
+          [[ "$exact_sha" =~ ^[0-9a-f]{40}$ && "$exact_sha" == "$GITHUB_SHA" ]]
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "exact_sha=$exact_sha" >> "$GITHUB_OUTPUT"
+          echo "confirmation=$confirm" >> "$GITHUB_OUTPUT"
+          echo "arm_create=$arm" >> "$GITHUB_OUTPUT"
   preflight:
+    needs: request_gate:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
       - name: Enforce owner, main-only exact SHA, and private confirmation
         shell: bash
         env:
-          EXPECTED_SHA: ${{ inputs.exact_main_sha }}
-          MODE: ${{ inputs.mode }}
-          CONFIRMATION: ${{ inputs.confirmation }}
+          EXPECTED_SHA: ${{ needs.request_gate.outputs.exact_sha }}
+          MODE: ${{ needs.request_gate.outputs.mode }}
+          CONFIRMATION: ${{ needs.request_gate.outputs.confirmation }}
         run: |
           set -euo pipefail
           [[ "$GITHUB_REPOSITORY" == "sucRo-RimWorld/LWM-s-Fuel-Filter-Fix" ]]
-          [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ ( "$GITHUB_EVENT_NAME" == "workflow_dispatch" || "$GITHUB_EVENT_NAME" == "issues" ) && "$GITHUB_REF" == "refs/heads/main" ]]
           [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ && "$EXPECTED_SHA" == "$GITHUB_SHA" ]]
           case "$MODE" in
             preflight|host_check) [[ -z "$CONFIRMATION" ]] ;;
@@ -49,6 +107,7 @@ jobs:
           esac
       - uses: actions/checkout@v4
         with:
+          ref: ${{ needs.request_gate.outputs.exact_sha }}
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -90,7 +149,25 @@ jobs:
           set -euo pipefail
           (cd Dist && sha256sum -c sha256.txt)
           python3 Scripts/steam_private.py --archive Dist/LWM-s-Fuel-Filter-Fix-1.6.zip --operation host_check
+  tag_readiness:
+    needs: [request_gate, preflight]
+    if: ${{ needs.request_gate.outputs.mode == 'create_private' || needs.request_gate.outputs.mode == 'update_private' }}
+    runs-on: [self-hosted, windows, steamworks-tag-publisher]
+    environment: steam-workshop-private
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.request_gate.outputs.exact_sha }}
+          persist-credentials: false
+      - name: Verify actual RimWorld Steamworks desktop session and approved tags
+        shell: pwsh
+        run: |
+          python Scripts/steamworks_lwm.py --probe
+          if ($LASTEXITCODE -ne 0) { throw 'Steamworks tags prerequisite unavailable; no upload attempted' }
   private_upload:
+    outputs:
+      publishedfileid: ${{ steps.upload.outputs.publishedfileid }}
     # The shared OS account has separate LWM_* host state; never use CCTO_STEAM_STATE.
     needs: preflight
     if: ${{ inputs.mode == 'create_private' || inputs.mode == 'update_private' }}
@@ -108,20 +185,43 @@ jobs:
       - name: Recheck source SHA and immutable subscriber payload
         shell: bash
         env:
-          EXPECTED_SHA: ${{ inputs.exact_main_sha }}
+          EXPECTED_SHA: ${{ needs.request_gate.outputs.exact_sha }}
         run: |
           set -euo pipefail
           [[ "$GITHUB_SHA" == "$EXPECTED_SHA" ]]
           (cd Dist && sha256sum -c sha256.txt)
           python3 Scripts/stage_workshop.py --verify Dist/LWM-s-Fuel-Filter-Fix-1.6.zip
       - name: Create or update creator-private item only (SteamCMD on isolated host)
+        id: upload
         shell: bash
         env:
-          OPERATION: ${{ inputs.mode }}
-          CONFIRMATION: ${{ inputs.confirmation }}
+          OPERATION: ${{ needs.request_gate.outputs.mode }}
+          CONFIRMATION: ${{ needs.request_gate.outputs.confirmation }}
+          # Authorized per-request only after trusted issue author + main SHA +
+          # protected GitHub Environment + authenticated Steamworks readiness.
+          LWM_ALLOW_PRIVATE_CREATE: ${{ needs.request_gate.outputs.arm_create }}
         run: |
           set -euo pipefail
           python3 Scripts/steam_private.py \
             --archive Dist/LWM-s-Fuel-Filter-Fix-1.6.zip \
             --operation "$OPERATION" \
             --confirm "$CONFIRMATION"
+
+  tag_sync:
+    needs: [request_gate, private_upload]
+    if: ${{ needs.private_upload.result == 'success' }}
+    runs-on: [self-hosted, windows, steamworks-tag-publisher]
+    environment: steam-workshop-private
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.request_gate.outputs.exact_sha }}
+          persist-credentials: false
+      - name: Apply Mod and 1.6 category tags via authenticated Steamworks
+        shell: pwsh
+        env:
+          UPLOADED_ITEM: ${{ needs.private_upload.outputs.publishedfileid }}
+        run: |
+          python Scripts/steamworks_lwm.py --sync --item-id "$env:UPLOADED_ITEM" --upload-run-id "$env:GITHUB_RUN_ID"
+          if ($LASTEXITCODE -ne 0) { throw 'Steamworks tags require manual reconciliation; do not repeat upload' }
