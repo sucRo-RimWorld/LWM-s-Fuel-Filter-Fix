@@ -12,6 +12,9 @@ workflow authorized for the shared SteamCMD runner.
   `sucRo0629` with the **exact** title
   `[publish:lwm-private-create]` (first private item) or
   `[publish:lwm-private-update]` (subsequent verified private item).
+  A one-time safe `[publish:lwm-private-preflight]` request exercises the
+  same connector→GitHub trigger and hosted preflight, with **no publisher
+  runner allocation or Steam interaction**.
   The issue body must consist of exactly `source_sha=<40-character main SHA>`.
   The connector can create this issue directly; a plugin that exposes only
   read-only Actions does not have to dispatch workflow_dispatch.
