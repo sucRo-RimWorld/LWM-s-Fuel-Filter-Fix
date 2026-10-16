@@ -1,5 +1,70 @@
 # LWM's Fuel Filter Fix — private Workshop publication
 
+## Current path — ChatGPT request to protected private Workshop release
+
+**Author goal:** On an explicit chat instruction to publish LWM's Fuel Filter
+Fix, use the connected GitHub issue action to create a release request. No
+user-side PowerShell, YADA, manual ZIP selection or CLI command is required.
+The existing `.github/workflows/steam-private.yml` is the *only* publishing
+workflow authorized for the shared SteamCMD runner.
+
+- Chat requests are represented by a new GitHub issue authored by
+  `sucRo0629` with the **exact** title
+  `[publish:lwm-private-create]` (first private item) or
+  `[publish:lwm-private-update]` (subsequent verified private item).
+  The issue body must consist of exactly `source_sha=<40-character main SHA>`.
+  The connector can create this issue directly; a plugin that exposes only
+  read-only Actions does not have to dispatch workflow_dispatch.
+  Unknown issue authors, titles and bodies have **no publisher jobs**.
+  Arbitrary issue text never runs as source code or shell fragments.
+- The request gate requires this exact user, title, body, repository,
+  `refs/heads/main` and `GITHUB_SHA`; the original protected
+  `workflow_dispatch` modes remain available separately. The gate emits
+  explicit mode, confirmation and pinned source SHA to the existing
+  reviewed pipeline.
+- Hosted preflight verifies source, four subscriber files, source-approved
+  bilingual description/changenote and private SteamCMD VDF. A Windows
+  `steamworks-tag-publisher` session probe must **PASS before** any real
+  content upload. Only then can the shared dedicated WSL publisher
+  submit with `visibility=2` (private) through SteamCMD.
+  `LWM_ALLOW_PRIVATE_CREATE=YES` is scoped to the authenticated first-create
+  issue job **only**; all prior host-state/uncertainty guards remain
+  enforced. No global systemd flags or account secrets are changed.
+- The upload step exports the returned **numeric** PublishedFileId as a
+  GitHub Actions job output, *not* the host credentials/state file.
+  The subsequent protected authenticated Windows job submits exactly
+  `Mod` and `1.6` with `SteamWorkshopAgent set-tags` and stores an
+  isolated per-run host-private receipt. A `PENDING` receipt blocks
+  ambiguous retries. **SteamCMD VDF cannot reliably publish category tags.**
+- Workshop description source: `Docs/WorkshopDescription.txt`
+  (full bilingual EN→JA); upload changenote source:
+  `Docs/WorkshopChangenote.txt` (bilingual initial 0.1.0).
+  Publisher reads these at the pinned checkout; neither Docs file is
+  bundled in the four-file subscriber Mod.
+- Both protected Steam environments **still require the repository's
+  configured human approval**. Do not silently disable environment
+  protection. The Windows runner must be allowed for this repository,
+  have the authenticated Steam desktop session and
+  `LWM_STEAMWORKS_AGENT_BIN` or reusable `CCTO_STEAMWORKS_AGENT_BIN`
+  configured host-locally. Source implementation alone is *not* live
+  readiness evidence. If the Windows runner cannot allocate or its probe
+  fails, the workflow must **not** create a tagless item.
+- `STEAMCMD_UPLOAD_REPORTED_SUCCESS` is not proof of private visibility,
+  downloaded payload or Workshop page tags. Tag-job success shows
+  Steamworks acknowledged the submission, not Steam's UI read-back.
+  First private Steam item may be inaccessible to a public details API;
+  the logged-in creator must verify visibility, description, changenote,
+  tag display and actual subscriber bytes before declaring full release
+  acceptance. A Steam upload error or ambiguous first-create result is
+  never retried blindly.
+
+**Current deployment status:** Route implemented in source; no private
+Steam Workshop upload is implied by merging this source change. Use an
+explicit release request to start a publisher run; review the run and
+Steam-side evidence afterward. CCTO for VPE is never an upload target
+of this route.
+
+
 ## Status and limits
 
 RimWorld 1.6 production patch is merged. The automated 1.6 subscriber ZIP is
