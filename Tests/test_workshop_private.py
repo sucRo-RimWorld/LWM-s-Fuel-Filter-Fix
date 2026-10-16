@@ -1,4 +1,7 @@
 import io
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -31,6 +34,44 @@ class SubscriberCandidateTests(unittest.TestCase):
             second = stage.stage(Path(d))
             self.assertEqual(first, second)
             self.assertEqual(one, (Path(d) / stage.ZIP_NAME).read_bytes())
+
+    def test_unarmed_host_check_passes_without_authorizing_creation(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            stage.stage(root / "dist")
+            archive = root / "dist" / stage.ZIP_NAME
+            steamcmd = root / "steamcmd.sh"
+            steamcmd.write_text("#!/bin/sh\\nexit 99\\n", encoding="utf-8")
+            steamcmd.chmod(0o700)
+            private = root / "lwm-private"
+            private.mkdir(mode=0o700)
+            state = private / "state.json"
+            env = os.environ.copy()
+            env.update({
+                "LWM_STEAMCMD_BIN": str(steamcmd),
+                "LWM_STEAM_ACCOUNT": "test-account",
+                "LWM_STEAM_STATE": str(state),
+            })
+            env.pop("LWM_ALLOW_PRIVATE_CREATE", None)
+            base = [
+                sys.executable, str(stage.ROOT / "Scripts/steam_private.py"),
+                "--archive", str(archive),
+            ]
+            checked = subprocess.run(
+                base + ["--operation", "host_check"], env=env,
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+            self.assertIn("HOST_CHECK_PASS no item; first-private-create NOT armed", checked.stdout)
+            self.assertFalse(state.exists())
+
+            denied = subprocess.run(
+                base + ["--operation", "create_private", "--confirm", "CREATE_PRIVATE_ONLY"],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertNotEqual(denied.returncode, 0)
+            self.assertIn("Creation blocked", denied.stderr)
+            self.assertFalse(state.exists())
 
     def test_archive_rejects_tampering_and_extra_paths(self):
         with tempfile.TemporaryDirectory() as d:
