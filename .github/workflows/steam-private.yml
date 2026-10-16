@@ -32,7 +32,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   request_gate:
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'issues' && github.event.issue.user.login == 'sucRo0629' && (github.event.issue.title == '[publish:lwm-private-create]' || github.event.issue.title == '[publish:lwm-private-update]')) }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'issues' && github.event.issue.user.login == 'sucRo0629' && (github.event.issue.title == '[publish:lwm-private-preflight]' || github.event.issue.title == '[publish:lwm-private-create]' || github.event.issue.title == '[publish:lwm-private-update]')) }}
     runs-on: ubuntu-latest
     outputs:
       mode: ${{ steps.gate.outputs.mode }}
@@ -60,6 +60,7 @@ jobs:
             [[ "$ISSUE_BODY" =~ ^source_sha=([0-9a-f]{40})$ ]] || exit 2
             exact_sha="${BASH_REMATCH[1]}"
             case "$ISSUE_TITLE" in
+              '[publish:lwm-private-preflight]') mode=preflight; confirm=''; arm=NO ;;
               '[publish:lwm-private-create]') mode=create_private; confirm=CREATE_PRIVATE_ONLY; arm=YES ;;
               '[publish:lwm-private-update]') mode=update_private; confirm=UPDATE_PRIVATE_ONLY; arm=NO ;;
               *) exit 2 ;;
