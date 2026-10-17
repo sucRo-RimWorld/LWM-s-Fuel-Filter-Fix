@@ -1,15 +1,7 @@
 name: LWM Fuel Filter source contract
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - "Source/**"
-      - "Tests/**"
-      - "About/**"
-      - "1.6/Assemblies/**"
-      - ".github/workflows/source-contract.yml"
-
+  workflow_dispatch:
 permissions:
   contents: read
 
