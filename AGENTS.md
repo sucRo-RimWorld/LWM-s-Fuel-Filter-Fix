@@ -1,0 +1,6 @@
+# LWM's Fuel Filter Fix — agent instructions
+
+1. Start by reading this file and `main:Docs/Coordination.md`, then the shared [AMJ Project AGENTS](https://github.com/sucRo-RimWorld/Ancient-Medieval-Japan-Project/blob/main/AGENTS.md) and [SharedRules](https://github.com/sucRo-RimWorld/Ancient-Medieval-Japan-Project/blob/main/Docs/SharedRules.md).
+2. This repository owns only the LWM's Fuel Filter Fix patch. Consult `README.md`, `VALIDATION.md`, actual source and release metadata; preserve the existing game's and LWM's Filter identities. An audit or documentation edit does not authorize changing patch behavior or Steam publication.
+3. Every version bump and release candidate must review and, as needed, update the root `README.md` in the same PR as version metadata, following the Project [Mod description guidelines](https://github.com/sucRo-RimWorld/Ancient-Medieval-Japan-Project/blob/main/Docs/ModDescriptionGuidelines.md). A stale README blocks release; source changes do not prove uploaded Workshop bytes.
+4. Ordinary changes: topic branch → PR → inspect checks for exact head → merge; never write directly to main. Native game tests and Steam upload are not triggered by this documentation policy. Cross-workstream handoffs belong in main-only Coordination; accepted technical information belongs in source and validation documents.
